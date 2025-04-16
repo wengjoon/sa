@@ -150,33 +150,101 @@
         /* Video Modal Styles */
         .modal-content {
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
+            background-color: #121212;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
         .modal-header {
-            background-color: #000;
-            border-bottom: none;
+            background-color: #121212;
+            border-bottom: 1px solid #303030;
             padding: 1rem 1.5rem;
         }
         .modal-title {
             color: #fff;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
         .modal-body {
             padding: 0;
             background-color: #000;
+            position: relative;
         }
         .btn-close {
             background-color: #fff;
             opacity: 0.8;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
         }
         .btn-close:hover {
             opacity: 1;
+            transform: scale(1.1);
         }
         #videoPlayer {
             width: 100%;
             height: auto;
             max-height: 80vh;
+            background-color: #000;
+        }
+        .video-container {
+            position: relative;
+            max-width: 450px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            height: auto;
+        }
+        .video-info-modal {
+            padding: 15px;
+            background-color: #121212;
+            color: #fff;
+        }
+        .video-stats-modal {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            color: #aaa;
+        }
+        .video-stats-modal i {
+            color: #fe2c55;
+            margin-right: 5px;
+        }
+        .overlay-buttons {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .overlay-btn {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .overlay-btn:hover {
+            background-color: #fe2c55;
+            transform: scale(1.1);
+        }
+        /* Make the modal more mobile-friendly */
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
+            }
+            .video-container {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -286,18 +354,30 @@
 
     <!-- Video Modal -->
     <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="videoModalLabel">{{$user['nickname']}}'s Video</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="ratio ratio-16x9">
-                        <video id="videoPlayer" controls autoplay>
+                    <div class="video-container">
+                        <video id="videoPlayer" controls autoplay playsinline>
                             <source src="" type="video/mp4">
                             Your browser does not support the video tag.
                         </video>
+                        <div class="overlay-buttons">
+                            <button class="overlay-btn" id="fullscreenBtn"><i class="fas fa-expand"></i></button>
+                            <button class="overlay-btn" id="shareBtn"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="video-info-modal">
+                        <h6 id="modal-video-title"></h6>
+                        <div class="video-stats-modal">
+                            <span id="modal-views"><i class="fas fa-eye"></i> <span id="view-count">0</span></span>
+                            <span id="modal-likes"><i class="fas fa-heart"></i> <span id="like-count">0</span></span>
+                            <span id="modal-comments"><i class="fas fa-comment"></i> <span id="comment-count">0</span></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -327,12 +407,21 @@
                 const videoId = $(this).data('video-id');
                 const videoTitle = $(this).closest('.video-card').find('.video-title').text();
                 
+                // Get video stats
+                const viewCount = $(this).closest('.video-card').find('.video-stats span:nth-child(1)').text().trim();
+                const likeCount = $(this).closest('.video-card').find('.video-stats span:nth-child(2)').text().trim();
+                const commentCount = $(this).closest('.video-card').find('.video-stats span:nth-child(3)').text().trim();
+                
                 // Update video source
                 $('#videoPlayer source').attr('src', videoUrl);
                 videoPlayer.load();
                 
-                // Update modal title
+                // Update modal title and stats
                 $('#videoModalLabel').text(videoTitle);
+                $('#modal-video-title').text(videoTitle);
+                $('#view-count').text(viewCount.replace(/[^0-9,]/g, ''));
+                $('#like-count').text(likeCount.replace(/[^0-9,]/g, ''));
+                $('#comment-count').text(commentCount.replace(/[^0-9,]/g, ''));
                 
                 // Update browser URL without reloading the page
                 const newUrl = `{{ url('/user/' . $username) }}/video/${videoId}`;
@@ -340,6 +429,37 @@
                 
                 // Show modal
                 videoModal.show();
+            });
+            
+            // Handle fullscreen button
+            $('#fullscreenBtn').click(function() {
+                if (videoPlayer.requestFullscreen) {
+                    videoPlayer.requestFullscreen();
+                } else if (videoPlayer.webkitRequestFullscreen) { /* Safari */
+                    videoPlayer.webkitRequestFullscreen();
+                } else if (videoPlayer.msRequestFullscreen) { /* IE11 */
+                    videoPlayer.msRequestFullscreen();
+                }
+            });
+            
+            // Handle share button
+            $('#shareBtn').click(function() {
+                if (navigator.share) {
+                    navigator.share({
+                        title: $('#videoModalLabel').text(),
+                        url: window.location.href
+                    }).catch(console.error);
+                } else {
+                    // Fallback - copy to clipboard
+                    const dummy = document.createElement('input');
+                    document.body.appendChild(dummy);
+                    dummy.value = window.location.href;
+                    dummy.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(dummy);
+                    
+                    alert('Link copied to clipboard!');
+                }
             });
             
             // Reset URL when modal is closed

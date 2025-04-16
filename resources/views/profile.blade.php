@@ -147,6 +147,37 @@
             text-align: center;
             margin-top: 2rem;
         }
+        /* Video Modal Styles */
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .modal-header {
+            background-color: #000;
+            border-bottom: none;
+            padding: 1rem 1.5rem;
+        }
+        .modal-title {
+            color: #fff;
+            font-weight: bold;
+        }
+        .modal-body {
+            padding: 0;
+            background-color: #000;
+        }
+        .btn-close {
+            background-color: #fff;
+            opacity: 0.8;
+        }
+        .btn-close:hover {
+            opacity: 1;
+        }
+        #videoPlayer {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+        }
     </style>
 </head>
 <body>
@@ -228,7 +259,7 @@
         <div class="video-grid" id="video-container">
             @foreach($videos as $video)
                 <div class="video-card">
-                    <a href="{{ $video['play'] }}" target="_blank">
+                    <a href="javascript:void(0);" class="video-link" data-video-id="{{ $video['video_id'] }}" data-video-url="{{ $video['play'] }}">
                         <div class="video-thumbnail">
                             <img src="{{ $video['cover'] }}" alt="{{ $video['title'] }}">
                             <div class="video-duration">{{ gmdate("i:s", $video['duration']) }}</div>
@@ -253,6 +284,26 @@
         @endif
     </div>
 
+    <!-- Video Modal -->
+    <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="videoModalLabel">{{$user['nickname']}}'s Video</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="ratio ratio-16x9">
+                        <video id="videoPlayer" controls autoplay>
+                            <source src="" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer>
         <div class="container">
@@ -265,6 +316,40 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            // Initialize video modal
+            const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            // Handle video click events
+            $(document).on('click', '.video-link', function(e) {
+                e.preventDefault();
+                const videoUrl = $(this).data('video-url');
+                const videoId = $(this).data('video-id');
+                const videoTitle = $(this).closest('.video-card').find('.video-title').text();
+                
+                // Update video source
+                $('#videoPlayer source').attr('src', videoUrl);
+                videoPlayer.load();
+                
+                // Update modal title
+                $('#videoModalLabel').text(videoTitle);
+                
+                // Update browser URL without reloading the page
+                const newUrl = `{{ url('/user/' . $username) }}/video/${videoId}`;
+                history.pushState({}, '', newUrl);
+                
+                // Show modal
+                videoModal.show();
+            });
+            
+            // Reset URL when modal is closed
+            $('#videoModal').on('hidden.bs.modal', function () {
+                history.pushState({}, '', `{{ url('/user/' . $username) }}`);
+                videoPlayer.pause();
+                $('#videoPlayer source').attr('src', '');
+                videoPlayer.load();
+            });
+            
             $('#load-more-btn').click(function() {
                 const btn = $(this);
                 const cursor = btn.data('cursor');
@@ -289,7 +374,7 @@
                                 
                                 html += `
                                 <div class="video-card">
-                                    <a href="${video.play}" target="_blank">
+                                    <a href="javascript:void(0);" class="video-link" data-video-id="${video.video_id}" data-video-url="${video.play}">
                                         <div class="video-thumbnail">
                                             <img src="${video.cover}" alt="${video.title}">
                                             <div class="video-duration">${duration}</div>

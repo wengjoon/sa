@@ -17,4 +17,5 @@ use App\Http\Controllers\TikTokController;
 Route::get('/', [TikTokController::class, 'index'])->name('home');
 Route::post('/search', [TikTokController::class, 'search'])->name('search');
 Route::get('/user/{username}', [TikTokController::class, 'userProfile'])->name('user.profile');
+Route::get('/user/{username}/video/{videoId}', [TikTokController::class, 'userProfile'])->name('video.view');
 Route::post('/load-more', [TikTokController::class, 'loadMorePosts'])->name('load.more'); 

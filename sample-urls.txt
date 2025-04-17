@@ -12,4 +12,4 @@ https://example.com/faq
 https://example.com/terms
 https://example.com/privacy
 https://example.com/support
-https://example.com/careers 
+https://example.com/careers
